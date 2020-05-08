@@ -1,11 +1,15 @@
 package main
 
-import "unsafe"
+import (
+	"reflect"
+	"unsafe"
+)
 
 var dataMap map[string]*dataNode
+var listMap map[string][]*dataNode
 func initGoKeyValue () {
 	dataMap = make (map[string]*dataNode)
-	
+	listMap = make (map[string][]*dataNode)
 }
 func interfaceToType (data interface{}) int {
 	switch data.(type) {
@@ -20,9 +24,12 @@ func interfaceToType (data interface{}) int {
 	}
 	return UnsupportedType
 }
-func SetKey (key string,value interface {}) {
-	t := interfaceToType(value)
-	var ptr unsafe.Pointer
+func toTypePtr (value interface{}) (t int,ptr unsafe.Pointer) {
+	t = interfaceToType(value)
+	if t == UnsupportedType {
+		panic("不支持的类型:" + reflect.TypeOf(value).String())
+		return
+	}
 	switch value.(type) {
 	case string:
 		t := value.(string)
@@ -41,8 +48,14 @@ func SetKey (key string,value interface {}) {
 		ptr = unsafe.Pointer(&t)
 		break
 	}
-	dataMap [key].Type = t
-	dataMap [key].Pointer = ptr
+	return
+}
+func SetKey (key string,value interface {}) {
+	t,ptr := toTypePtr(value)
+	dataMap [key] = &dataNode{
+		Type:    t,
+		Pointer: ptr,
+	}
 }
 func GetString (key string) (string) {
 	if _,ok := dataMap [key];!ok {
@@ -68,4 +81,24 @@ func GetBool (key string) (bool) {
 	}
 	return *(*bool)(dataMap [key].Pointer)
 }
-
+func InsertList (key string,v interface {}) {
+	if _,ok := listMap [key];!ok {
+		listMap [key] = make ([]*dataNode,0)
+	}
+	t,ptr := toTypePtr(v)
+	listMap[key] = append(listMap[key], &dataNode{
+		Type:    t,
+		Pointer: ptr,
+	})
+}
+func PopList (key string) (v interface{}){
+	if _,ok := listMap [key];!ok {
+		return nil
+	}
+	if len (listMap [key]) == 0 {
+		return nil
+	}
+	v = *(listMap [key][0].Pointer)
+	listMap [key] = listMap[key][1:]
+	return
+}
