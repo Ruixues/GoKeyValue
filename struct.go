@@ -1,7 +1,5 @@
 package main
 
-import "unsafe"
-
 const (
 	TypeString = iota
 	TypeInt
@@ -12,5 +10,6 @@ const (
 
 type dataNode struct {
 	Type    int
-	Pointer unsafe.Pointer
+	Data interface{}
 }
+
